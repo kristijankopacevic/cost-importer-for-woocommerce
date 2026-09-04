@@ -26,7 +26,7 @@ pull_image() {
 
 docker network create ciwc-test >/dev/null
 pull_image mariadb:11
-pull_image wordpress:6.6-php8.2-apache
+pull_image wordpress:php8.2-apache
 pull_image wordpress:cli-php8.2
 docker run -d --name ciwc-db --network ciwc-test \
   -e MARIADB_DATABASE=wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_ROOT_PASSWORD=root \
@@ -34,7 +34,7 @@ docker run -d --name ciwc-db --network ciwc-test \
 docker run -d --name ciwc-wp --network ciwc-test -p 8080:80 \
   -e WORDPRESS_DB_HOST=ciwc-db:3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpress \
   -v "$GITHUB_WORKSPACE:/var/www/html/wp-content/plugins/cost-importer-for-woocommerce:ro" \
-  wordpress:6.6-php8.2-apache >/dev/null
+  wordpress:php8.2-apache >/dev/null
 
 for attempt in {1..30}; do
   if curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null; then break; fi
