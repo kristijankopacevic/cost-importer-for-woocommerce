@@ -13,6 +13,11 @@
     <exclude name="Squiz.WhiteSpace.SuperfluousWhitespace"/>
     <exclude name="WordPress.PHP.YodaConditions"/>
     <exclude name="WordPress.WP.I18n"/>
+    <!-- CSV streams and this plugin's custom audit tables require these reviewed operations. -->
+    <exclude name="WordPress.WP.AlternativeFunctions"/>
+    <exclude name="WordPress.DB.DirectDatabaseQuery"/>
+    <exclude name="WordPress.DB.SlowDBQuery"/>
+    <exclude name="Generic.CodeAnalysis.AssignmentInCondition"/>
   </rule>
   <rule ref="PHPCompatibility" />
   <config name="testVersion" value="7.4-"/>
