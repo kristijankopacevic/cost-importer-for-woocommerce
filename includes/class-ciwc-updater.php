@@ -29,7 +29,13 @@ class CIWC_Updater {
 		}
 		$release = get_site_transient( 'ciwc_github_release' );
 		if ( false === $release ) {
-			$response = wp_safe_remote_get( self::API, array( 'timeout' => 5, 'headers' => array( 'Accept' => 'application/vnd.github+json' ) ) );
+			$response = wp_safe_remote_get(
+				self::API,
+				array(
+					'timeout' => 5,
+					'headers' => array( 'Accept' => 'application/vnd.github+json' ),
+				) 
+			);
 			$release  = is_wp_error( $response ) ? array() : json_decode( wp_remote_retrieve_body( $response ), true );
 			set_site_transient( 'ciwc_github_release', is_array( $release ) ? $release : array(), 12 * HOUR_IN_SECONDS );
 		}
@@ -62,11 +68,11 @@ class CIWC_Updater {
 			return $result;
 		}
 		return (object) array(
-			'name'          => 'Cost Importer for WooCommerce',
-			'slug'          => 'cost-importer-for-woocommerce',
-			'version'       => CIWC_VERSION,
-			'homepage'      => 'https://github.com/kristijankopacevic/cost-importer-for-woocommerce',
-			'sections'      => array( 'description' => 'Safe CSV supplier cost imports with review, history, unmatched reports, and guarded rollback.' ),
+			'name'     => 'Cost Importer for WooCommerce',
+			'slug'     => 'cost-importer-for-woocommerce',
+			'version'  => CIWC_VERSION,
+			'homepage' => 'https://github.com/kristijankopacevic/cost-importer-for-woocommerce',
+			'sections' => array( 'description' => 'Safe CSV supplier cost imports with review, history, unmatched reports, and guarded rollback.' ),
 		);
 	}
 }

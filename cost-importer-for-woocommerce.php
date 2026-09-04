@@ -37,15 +37,21 @@ function ciwc_uninstall() {
 	CIWC_Repository::uninstall();
 }
 
-add_action( 'before_woocommerce_init', static function() {
-	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil' ) ) {
-		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', CIWC_FILE, true );
-	}
-} );
+add_action(
+	'before_woocommerce_init',
+	static function () {
+		if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', CIWC_FILE, true );
+		}
+	} 
+);
 
-add_action( 'plugins_loaded', static function() {
-	if ( class_exists( 'WooCommerce' ) ) {
-		CIWC_Plugin::instance();
-		CIWC_Updater::instance();
-	}
-} );
+add_action(
+	'plugins_loaded',
+	static function () {
+		if ( class_exists( 'WooCommerce' ) ) {
+			CIWC_Plugin::instance();
+			CIWC_Updater::instance();
+		}
+	} 
+);

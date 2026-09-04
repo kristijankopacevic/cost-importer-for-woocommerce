@@ -70,11 +70,15 @@ class CIWC_Plugin {
 			$this->redirect( array( 'ciwc_error' => rawurlencode( $parsed->get_error_message() ) ) );
 		}
 		$id = wp_generate_uuid4();
-		set_transient( $this->transient_key( $id ), array(
-			'user_id'  => get_current_user_id(),
-			'filename' => sanitize_file_name( $file['name'] ),
-			'parsed'   => $parsed,
-		), 30 * MINUTE_IN_SECONDS );
+		set_transient(
+			$this->transient_key( $id ),
+			array(
+				'user_id'  => get_current_user_id(),
+				'filename' => sanitize_file_name( $file['name'] ),
+				'parsed'   => $parsed,
+			),
+			30 * MINUTE_IN_SECONDS 
+		);
 		$this->redirect( array( 'ciwc_preview' => $id ) );
 	}
 
@@ -113,9 +117,9 @@ class CIWC_Plugin {
 		if ( ! $data ) {
 			$this->redirect( array( 'ciwc_error' => 'expired' ) );
 		}
-		$header   = $data['parsed']['header'];
-		$mapping  = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? wp_unslash( $_POST['mapping'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
-		$map      = array();
+		$header  = $data['parsed']['header'];
+		$mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? wp_unslash( $_POST['mapping'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$map     = array();
 		foreach ( array( 'sku', 'cost', 'currency', 'id' ) as $field ) {
 			$map[ $field ] = isset( $mapping[ $field ] ) && '' !== $mapping[ $field ] ? absint( $mapping[ $field ] ) : null;
 			if ( null !== $map[ $field ] && ! array_key_exists( $map[ $field ], $header ) ) {
@@ -126,7 +130,7 @@ class CIWC_Plugin {
 		if ( null === $map['sku'] || null === $map['cost'] || ( $allow_id && null === $map['id'] ) ) {
 			$this->redirect( array( 'ciwc_error' => 'mapping_required' ) );
 		}
-		$currency = isset( $_POST['fixed_currency'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['fixed_currency'] ) ) ) : get_woocommerce_currency(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$currency   = isset( $_POST['fixed_currency'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['fixed_currency'] ) ) ) : get_woocommerce_currency(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
 		$currencies = get_woocommerce_currencies();
 		if ( ! isset( $currencies[ $currency ] ) ) {
 			$this->redirect( array( 'ciwc_error' => 'currency' ) );
@@ -140,12 +144,12 @@ class CIWC_Plugin {
 		$unmatched = array();
 		$seen      = array();
 		foreach ( $data['parsed']['rows'] as $offset => $row ) {
-			$number = $offset + 2;
-			$sku    = isset( $row[ $map['sku'] ] ) ? trim( (string) $row[ $map['sku'] ] ) : '';
-			$cost   = isset( $row[ $map['cost'] ] ) ? CIWC_CSV::parse_cost( $row[ $map['cost'] ] ) : new WP_Error( 'ciwc_cost', 'Missing cost column.' );
+			$number       = $offset + 2;
+			$sku          = isset( $row[ $map['sku'] ] ) ? trim( (string) $row[ $map['sku'] ] ) : '';
+			$cost         = isset( $row[ $map['cost'] ] ) ? CIWC_CSV::parse_cost( $row[ $map['cost'] ] ) : new WP_Error( 'ciwc_cost', 'Missing cost column.' );
 			$row_currency = null === $map['currency'] ? $currency : strtoupper( trim( (string) ( $row[ $map['currency'] ] ?? '' ) ) );
-			$source_id = null === $map['id'] ? '' : absint( $row[ $map['id'] ] ?? 0 );
-			$reason = '';
+			$source_id    = null === $map['id'] ? '' : absint( $row[ $map['id'] ] ?? 0 );
+			$reason       = '';
 			if ( '' === $sku && ! ( $allow_id && $source_id ) ) {
 				$reason = __( 'Missing SKU (and no allowed product ID fallback).', 'cost-importer-for-woocommerce' );
 			} elseif ( is_wp_error( $cost ) ) {
@@ -153,16 +157,29 @@ class CIWC_Plugin {
 			} elseif ( ! isset( $currencies[ $row_currency ] ) || $row_currency !== $currency ) {
 				$reason = sprintf( __( 'Currency must be %s.', 'cost-importer-for-woocommerce' ), $currency );
 			} elseif ( '' !== $sku && isset( $seen[ strtolower( $sku ) ] ) ) {
-				$reason = __( 'Duplicate supplier SKU row; neither duplicate will be imported.', 'cost-importer-for-woocommerce' );
+				$reason                                        = __( 'Duplicate supplier SKU row; neither duplicate will be imported.', 'cost-importer-for-woocommerce' );
 				$rows[ $seen[ strtolower( $sku ) ] ]['reason'] = $reason;
 			}
-			$rows[] = array( 'number' => $number, 'sku' => $sku, 'cost' => is_wp_error( $cost ) ? '' : $cost, 'currency' => $row_currency, 'source_id' => $source_id, 'reason' => $reason );
+			$rows[] = array(
+				'number'    => $number,
+				'sku'       => $sku,
+				'cost'      => is_wp_error( $cost ) ? '' : $cost,
+				'currency'  => $row_currency,
+				'source_id' => $source_id,
+				'reason'    => $reason,
+			);
 			if ( '' !== $sku && ! isset( $seen[ strtolower( $sku ) ] ) ) {
 				$seen[ strtolower( $sku ) ] = count( $rows ) - 1;
 			}
 		}
-		$index = $this->sku_index( array_filter( array_column( $rows, 'sku' ) ) );
-		$counts = array( 'matched' => 0, 'unmatched' => 0, 'ambiguous' => 0, 'invalid' => 0, 'total' => count( $rows ) );
+		$index  = $this->sku_index( array_filter( array_column( $rows, 'sku' ) ) );
+		$counts = array(
+			'matched'   => 0,
+			'unmatched' => 0,
+			'ambiguous' => 0,
+			'invalid'   => 0,
+			'total'     => count( $rows ),
+		);
 		foreach ( $rows as &$row ) {
 			if ( '' !== $row['reason'] ) {
 				++$counts['invalid'];
@@ -186,9 +203,22 @@ class CIWC_Plugin {
 			}
 		}
 		unset( $row );
-		$data['prepared'] = array( 'mapping' => $map, 'currency' => $currency, 'target' => $target, 'allow_id' => $allow_id, 'rows' => $rows, 'unmatched' => $unmatched, 'counts' => $counts );
+		$data['prepared'] = array(
+			'mapping'   => $map,
+			'currency'  => $currency,
+			'target'    => $target,
+			'allow_id'  => $allow_id,
+			'rows'      => $rows,
+			'unmatched' => $unmatched,
+			'counts'    => $counts,
+		);
 		set_transient( $this->transient_key( $id ), $data, 30 * MINUTE_IN_SECONDS );
-		$this->redirect( array( 'ciwc_preview' => $id, 'ciwc_stage' => 'confirm' ) );
+		$this->redirect(
+			array(
+				'ciwc_preview' => $id,
+				'ciwc_stage'   => 'confirm',
+			) 
+		);
 	}
 
 	private function sku_index( $skus ) {
@@ -196,11 +226,11 @@ class CIWC_Plugin {
 		$index = array();
 		foreach ( array_chunk( array_values( array_unique( $skus ) ), 200 ) as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%s' ) );
-			$args = array_merge( array( '_sku' ), $chunk );
-			$sql  = "SELECT pm.meta_value AS sku, p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id WHERE pm.meta_key = %s AND pm.meta_value IN ({$placeholders}) AND p.post_type IN ('product','product_variation') AND p.post_status != 'trash'";
-			$found = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- dynamic placeholders are prepared.
+			$args         = array_merge( array( '_sku' ), $chunk );
+			$sql          = "SELECT pm.meta_value AS sku, p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id WHERE pm.meta_key = %s AND pm.meta_value IN ({$placeholders}) AND p.post_type IN ('product','product_variation') AND p.post_status != 'trash'";
+			$found        = $wpdb->get_results( $wpdb->prepare( $sql, $args ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- dynamic placeholders are prepared.
 			foreach ( $found as $item ) {
-				$key = strtolower( (string) $item['sku'] );
+				$key             = strtolower( (string) $item['sku'] );
 				$index[ $key ][] = (int) $item['ID'];
 			}
 		}
@@ -209,18 +239,31 @@ class CIWC_Plugin {
 
 	public function confirm() {
 		$this->guard( 'ciwc_confirm' );
-		$id   = isset( $_POST['preview_id'] ) ? sanitize_text_field( wp_unslash( $_POST['preview_id'] ) ) : '';
-		$data = $this->get_preview( $id );
+		$id    = isset( $_POST['preview_id'] ) ? sanitize_text_field( wp_unslash( $_POST['preview_id'] ) ) : '';
+		$data  = $this->get_preview( $id );
 		$typed = isset( $_POST['confirmation'] ) ? trim( wp_unslash( $_POST['confirmation'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
 		if ( ! $data || empty( $data['prepared'] ) || 'UPDATE COSTS' !== $typed ) {
-			$this->redirect( array( 'ciwc_preview' => $id, 'ciwc_stage' => 'confirm', 'ciwc_error' => 'confirmation' ) );
+			$this->redirect(
+				array(
+					'ciwc_preview' => $id,
+					'ciwc_stage'   => 'confirm',
+					'ciwc_error'   => 'confirmation',
+				) 
+			);
 		}
-		$prepared = $data['prepared'];
-		$import_id = CIWC_Repository::create_import( array(
-			'uuid' => wp_generate_uuid4(), 'filename' => $data['filename'], 'target_meta_key' => $prepared['target'], 'currency' => $prepared['currency'], 'summary' => $prepared['counts'], 'unmatched' => $prepared['unmatched'],
-		) );
-		$updated = 0;
-		$failed  = 0;
+		$prepared  = $data['prepared'];
+		$import_id = CIWC_Repository::create_import(
+			array(
+				'uuid'            => wp_generate_uuid4(),
+				'filename'        => $data['filename'],
+				'target_meta_key' => $prepared['target'],
+				'currency'        => $prepared['currency'],
+				'summary'         => $prepared['counts'],
+				'unmatched'       => $prepared['unmatched'],
+			) 
+		);
+		$updated   = 0;
+		$failed    = 0;
 		foreach ( $prepared['rows'] as $row ) {
 			if ( empty( $row['product_id'] ) || ! empty( $row['reason'] ) ) {
 				continue;
@@ -244,7 +287,7 @@ class CIWC_Plugin {
 				++$failed;
 			}
 		}
-		$summary = $prepared['counts'];
+		$summary            = $prepared['counts'];
 		$summary['updated'] = $updated;
 		$summary['failed']  = $failed;
 		CIWC_Repository::complete_import( $import_id, $failed ? 'partial' : 'completed', $summary );
@@ -265,7 +308,7 @@ class CIWC_Plugin {
 	public function rollback() {
 		$this->guard( 'ciwc_rollback' );
 		$import_id = isset( $_POST['import_id'] ) ? absint( $_POST['import_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
-		$import = CIWC_Repository::get_import( $import_id );
+		$import    = CIWC_Repository::get_import( $import_id );
 		if ( ! $import || ! in_array( $import['status'], array( 'completed', 'partial' ), true ) ) {
 			$this->redirect( array( 'ciwc_error' => 'rollback' ) );
 		}
@@ -294,7 +337,17 @@ class CIWC_Plugin {
 				++$skipped;
 			}
 		}
-		CIWC_Repository::complete_import( $import_id, $skipped ? 'rollback_partial' : 'rolled_back', array_merge( (array) json_decode( $import['summary'], true ), array( 'restored' => $restored, 'rollback_skipped' => $skipped ) ) );
+		CIWC_Repository::complete_import(
+			$import_id,
+			$skipped ? 'rollback_partial' : 'rolled_back',
+			array_merge(
+				(array) json_decode( $import['summary'], true ),
+				array(
+					'restored'         => $restored,
+					'rollback_skipped' => $skipped,
+				) 
+			) 
+		);
 		$this->redirect( array( 'ciwc_done' => $import_id ) );
 	}
 
@@ -310,17 +363,17 @@ class CIWC_Plugin {
 		if ( empty( $_GET['ciwc_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only query argument.
 			return;
 		}
-		$error = sanitize_text_field( wp_unslash( $_GET['ciwc_error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only query argument.
+		$error    = sanitize_text_field( wp_unslash( $_GET['ciwc_error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only query argument.
 		$messages = array(
-			'upload' => __( 'Upload failed. Choose a CSV file and try again.', 'cost-importer-for-woocommerce' ),
-			'file' => __( 'Use an uploaded CSV no larger than 2 MiB.', 'cost-importer-for-woocommerce' ),
-			'type' => __( 'Only .csv files are accepted.', 'cost-importer-for-woocommerce' ),
-			'expired' => __( 'This preview expired. Upload the CSV again.', 'cost-importer-for-woocommerce' ),
+			'upload'           => __( 'Upload failed. Choose a CSV file and try again.', 'cost-importer-for-woocommerce' ),
+			'file'             => __( 'Use an uploaded CSV no larger than 2 MiB.', 'cost-importer-for-woocommerce' ),
+			'type'             => __( 'Only .csv files are accepted.', 'cost-importer-for-woocommerce' ),
+			'expired'          => __( 'This preview expired. Upload the CSV again.', 'cost-importer-for-woocommerce' ),
 			'mapping_required' => __( 'SKU and cost mappings are required. Product ID is only available as an explicit fallback.', 'cost-importer-for-woocommerce' ),
-			'confirmation' => __( 'Type UPDATE COSTS exactly to apply this reviewed import.', 'cost-importer-for-woocommerce' ),
-			'rollback' => __( 'This import cannot be rolled back again.', 'cost-importer-for-woocommerce' ),
+			'confirmation'     => __( 'Type UPDATE COSTS exactly to apply this reviewed import.', 'cost-importer-for-woocommerce' ),
+			'rollback'         => __( 'This import cannot be rolled back again.', 'cost-importer-for-woocommerce' ),
 		);
-		$message = $messages[ $error ] ?? rawurldecode( $error );
+		$message  = $messages[ $error ] ?? rawurldecode( $error );
 		printf( '<div class="notice notice-error"><p>%s</p></div>', esc_html( $message ) );
 	}
 
@@ -330,7 +383,7 @@ class CIWC_Plugin {
 		}
 		wp_enqueue_style( 'ciwc-admin', CIWC_URL . 'assets/css/admin.css', array(), CIWC_VERSION );
 		$preview_id = isset( $_GET['ciwc_preview'] ) ? sanitize_text_field( wp_unslash( $_GET['ciwc_preview'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only query argument.
-		$data = $preview_id ? $this->get_preview( $preview_id ) : false;
+		$data       = $preview_id ? $this->get_preview( $preview_id ) : false;
 		echo '<div class="wrap ciwc"><h1>' . esc_html__( 'Cost Importer for WooCommerce', 'cost-importer-for-woocommerce' ) . '</h1>';
 		$this->notice();
 		if ( $data && ! empty( $_GET['ciwc_stage'] ) && 'confirm' === $_GET['ciwc_stage'] && ! empty( $data['prepared'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display-only query argument.
@@ -371,8 +424,18 @@ class CIWC_Plugin {
 			<tr><th><label><?php esc_html_e( 'SKU column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'sku', $header, $this->header_guess( $header, 'sku' ), true ); ?><p class="description"><?php esc_html_e( 'Matches simple-product and variation SKUs exactly.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
 			<tr><th><label><?php esc_html_e( 'Cost column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'cost', $header, $this->header_guess( $header, 'cost' ), true ); ?></td></tr>
 			<tr><th><label><?php esc_html_e( 'Currency column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'currency', $header, $this->header_guess( $header, 'currency' ) ); ?><p class="description"><?php esc_html_e( 'Optional. If mapped, every value must equal the selected import currency.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
-			<tr><th><label><?php esc_html_e( 'Import currency', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="fixed_currency"><?php foreach ( get_woocommerce_currencies() as $code => $name ) { printf( '<option value="%1$s" %2$s>%1$s — %3$s</option>', esc_attr( $code ), selected( get_woocommerce_currency(), $code, false ), esc_html( $name ) ); } ?></select></td></tr>
-			<tr><th><label><?php esc_html_e( 'Cost field to update', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="target"><?php foreach ( $this->targets() as $key => $label ) { printf( '<option value="%1$s">%2$s</option>', esc_attr( $key ), esc_html( $label ) ); } ?></select><p class="description"><?php esc_html_e( 'Only the chosen field changes. Third-party fields are offered only after a compatible plugin identifies itself.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
+			<tr><th><label><?php esc_html_e( 'Import currency', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="fixed_currency">
+			<?php
+			foreach ( get_woocommerce_currencies() as $code => $name ) {
+				printf( '<option value="%1$s" %2$s>%1$s — %3$s</option>', esc_attr( $code ), selected( get_woocommerce_currency(), $code, false ), esc_html( $name ) ); }
+			?>
+			</select></td></tr>
+			<tr><th><label><?php esc_html_e( 'Cost field to update', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="target">
+			<?php
+			foreach ( $this->targets() as $key => $label ) {
+				printf( '<option value="%1$s">%2$s</option>', esc_attr( $key ), esc_html( $label ) ); }
+			?>
+			</select><p class="description"><?php esc_html_e( 'Only the chosen field changes. Third-party fields are offered only after a compatible plugin identifies itself.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
 			<tr><th><label><?php esc_html_e( 'Product ID fallback', 'cost-importer-for-woocommerce' ); ?></label></th><td><label><input type="checkbox" name="allow_id_fallback" value="1"> <?php esc_html_e( 'Allow an ID column only when an SKU has no match', 'cost-importer-for-woocommerce' ); ?></label><br><?php $this->select( 'id', $header, $this->header_guess( $header, 'id' ) ); ?></td></tr>
 			</tbody></table>
 			<?php submit_button( __( 'Build safe preview', 'cost-importer-for-woocommerce' ) ); ?>
@@ -387,8 +450,16 @@ class CIWC_Plugin {
 		<div class="ciwc-card"><p><strong><?php esc_html_e( 'Target:', 'cost-importer-for-woocommerce' ); ?></strong> <code><?php echo esc_html( $p['target'] ); ?></code> &middot; <strong><?php esc_html_e( 'Currency:', 'cost-importer-for-woocommerce' ); ?></strong> <?php echo esc_html( $p['currency'] ); ?></p>
 			<ul class="ciwc-counts"><li><?php printf( esc_html__( '%d matched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['matched'] ); ?></li><li><?php printf( esc_html__( '%d unmatched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['unmatched'] ); ?></li><li><?php printf( esc_html__( '%d ambiguous', 'cost-importer-for-woocommerce' ), (int) $p['counts']['ambiguous'] ); ?></li><li><?php printf( esc_html__( '%d invalid/duplicate', 'cost-importer-for-woocommerce' ), (int) $p['counts']['invalid'] ); ?></li></ul>
 			<p><?php esc_html_e( 'Only matched, valid rows will be updated. All other rows will be retained in the unmatched report.', 'cost-importer-for-woocommerce' ); ?></p>
-			<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Row', 'cost-importer-for-woocommerce' ); ?></th><th>SKU</th><th><?php esc_html_e( 'Product', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Cost', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Status', 'cost-importer-for-woocommerce' ); ?></th></tr></thead><tbody><?php foreach ( array_slice( $p['rows'], 0, 50 ) as $row ) { echo '<tr><td>' . (int) $row['number'] . '</td><td>' . esc_html( $row['sku'] ) . '</td><td>' . ( ! empty( $row['product_id'] ) ? (int) $row['product_id'] : '—' ) . '</td><td>' . esc_html( $row['cost'] ) . '</td><td>' . esc_html( $row['reason'] ?: __( 'Matched', 'cost-importer-for-woocommerce' ) ) . '</td></tr>'; } ?></tbody></table>
-			<?php if ( count( $p['rows'] ) > 50 ) : ?><p class="description"><?php esc_html_e( 'The table shows the first 50 rows; counts cover the full CSV.', 'cost-importer-for-woocommerce' ); ?></p><?php endif; ?>
+			<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Row', 'cost-importer-for-woocommerce' ); ?></th><th>SKU</th><th><?php esc_html_e( 'Product', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Cost', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Status', 'cost-importer-for-woocommerce' ); ?></th></tr></thead><tbody>
+			<?php
+			foreach ( array_slice( $p['rows'], 0, 50 ) as $row ) {
+				echo '<tr><td>' . (int) $row['number'] . '</td><td>' . esc_html( $row['sku'] ) . '</td><td>' . ( ! empty( $row['product_id'] ) ? (int) $row['product_id'] : '—' ) . '</td><td>' . esc_html( $row['cost'] ) . '</td><td>' . esc_html( $row['reason'] ?: __( 'Matched', 'cost-importer-for-woocommerce' ) ) . '</td></tr>'; }
+			?>
+			</tbody></table>
+			<?php
+			if ( count( $p['rows'] ) > 50 ) :
+				?>
+				<p class="description"><?php esc_html_e( 'The table shows the first 50 rows; counts cover the full CSV.', 'cost-importer-for-woocommerce' ); ?></p><?php endif; ?>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ciwc-confirm"><input type="hidden" name="action" value="ciwc_confirm"><input type="hidden" name="preview_id" value="<?php echo esc_attr( $preview_id ); ?>"><?php wp_nonce_field( 'ciwc_confirm' ); ?><label><?php esc_html_e( 'Type UPDATE COSTS to confirm:', 'cost-importer-for-woocommerce' ); ?> <input name="confirmation" autocomplete="off" required></label><?php submit_button( __( 'Apply reviewed cost updates', 'cost-importer-for-woocommerce' ), 'primary', 'submit', false ); ?></form>
 		</div>
 		<?php
@@ -414,9 +485,19 @@ class CIWC_Plugin {
 		<h2><?php esc_html_e( 'Import history', 'cost-importer-for-woocommerce' ); ?></h2>
 		<p class="description"><?php esc_html_e( 'Rollback restores only values that still equal this import’s value. Later manual or plugin edits are never overwritten.', 'cost-importer-for-woocommerce' ); ?></p>
 		<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Date', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'File', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Target', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Status', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Result', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Actions', 'cost-importer-for-woocommerce' ); ?></th></tr></thead><tbody>
-		<?php if ( ! $history ) : ?><tr><td colspan="6"><?php esc_html_e( 'No imports yet.', 'cost-importer-for-woocommerce' ); ?></td></tr><?php endif; ?>
-		<?php foreach ( $history as $import ) : $summary = json_decode( $import['summary'], true ); ?>
-			<tr><td><?php echo esc_html( get_date_from_gmt( $import['created_at'], get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ); ?></td><td><?php echo esc_html( $import['filename'] ); ?></td><td><code><?php echo esc_html( $import['target_meta_key'] ); ?></code></td><td><?php echo esc_html( $import['status'] ); ?></td><td><?php printf( esc_html__( '%d updated / %d failed', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ) ); ?></td><td><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ciwc_unmatched&import_id=' . (int) $import['id'] ), 'ciwc_unmatched' ) ); ?>"><?php esc_html_e( 'Unmatched CSV', 'cost-importer-for-woocommerce' ); ?></a><?php if ( in_array( $import['status'], array( 'completed', 'partial' ), true ) ) : ?><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ciwc-inline"><input type="hidden" name="action" value="ciwc_rollback"><input type="hidden" name="import_id" value="<?php echo (int) $import['id']; ?>"><?php wp_nonce_field( 'ciwc_rollback' ); ?><button type="submit" class="button" onclick="return confirm('<?php echo esc_js( __( 'Restore only values that have not changed since this import?', 'cost-importer-for-woocommerce' ) ); ?>');"><?php esc_html_e( 'Safe rollback', 'cost-importer-for-woocommerce' ); ?></button></form><?php endif; ?></td></tr>
+		<?php
+		if ( ! $history ) :
+			?>
+			<tr><td colspan="6"><?php esc_html_e( 'No imports yet.', 'cost-importer-for-woocommerce' ); ?></td></tr><?php endif; ?>
+		<?php
+		foreach ( $history as $import ) :
+			$summary = json_decode( $import['summary'], true );
+			?>
+			<tr><td><?php echo esc_html( get_date_from_gmt( $import['created_at'], get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ); ?></td><td><?php echo esc_html( $import['filename'] ); ?></td><td><code><?php echo esc_html( $import['target_meta_key'] ); ?></code></td><td><?php echo esc_html( $import['status'] ); ?></td><td><?php printf( esc_html__( '%d updated / %d failed', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ) ); ?></td><td><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ciwc_unmatched&import_id=' . (int) $import['id'] ), 'ciwc_unmatched' ) ); ?>"><?php esc_html_e( 'Unmatched CSV', 'cost-importer-for-woocommerce' ); ?></a>
+			<?php
+			if ( in_array( $import['status'], array( 'completed', 'partial' ), true ) ) :
+				?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ciwc-inline"><input type="hidden" name="action" value="ciwc_rollback"><input type="hidden" name="import_id" value="<?php echo (int) $import['id']; ?>"><?php wp_nonce_field( 'ciwc_rollback' ); ?><button type="submit" class="button" onclick="return confirm('<?php echo esc_js( __( 'Restore only values that have not changed since this import?', 'cost-importer-for-woocommerce' ) ); ?>');"><?php esc_html_e( 'Safe rollback', 'cost-importer-for-woocommerce' ); ?></button></form><?php endif; ?></td></tr>
 		<?php endforeach; ?>
 		</tbody></table>
 		<?php

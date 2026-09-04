@@ -33,7 +33,12 @@ class CIWC_CSV {
 			return new WP_Error( 'ciwc_rows', __( 'The CSV needs a header and at least one data row.', 'cost-importer-for-woocommerce' ) );
 		}
 		$header = array_shift( $rows );
-		$header = array_map( static function( $value ) { return trim( (string) $value ); }, $header );
+		$header = array_map(
+			static function ( $value ) {
+				return trim( (string) $value );
+			},
+			$header 
+		);
 		if ( ! self::looks_like_header( $header ) ) {
 			return new WP_Error( 'ciwc_header', __( 'A recognizable header row was not found. Add headers, then upload again.', 'cost-importer-for-woocommerce' ) );
 		}
@@ -88,7 +93,12 @@ class CIWC_CSV {
 			if ( array( null ) === $row || array( '' ) === $row ) {
 				continue;
 			}
-			$rows[] = array_map( static function( $value ) { return is_string( $value ) ? $value : ''; }, $row );
+			$rows[] = array_map(
+				static function ( $value ) {
+					return is_string( $value ) ? $value : '';
+				},
+				$row 
+			);
 		}
 		fclose( $handle );
 		return $rows;
@@ -114,9 +124,9 @@ class CIWC_CSV {
 		if ( ! preg_match( '/^[0-9.,\']+$/', $value ) ) {
 			return new WP_Error( 'ciwc_cost', __( 'Cost contains unsupported characters.', 'cost-importer-for-woocommerce' ) );
 		}
-		$value = str_replace( "'", '', $value );
-		$comma = strrpos( $value, ',' );
-		$dot   = strrpos( $value, '.' );
+		$value   = str_replace( "'", '', $value );
+		$comma   = strrpos( $value, ',' );
+		$dot     = strrpos( $value, '.' );
 		$decimal = false;
 		if ( false !== $comma && false !== $dot ) {
 			$decimal = $comma > $dot ? ',' : '.';

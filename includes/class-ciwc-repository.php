@@ -24,7 +24,8 @@ class CIWC_Repository {
 		$charset = $wpdb->get_charset_collate();
 		$imports = self::imports_table();
 		$changes = self::changes_table();
-		dbDelta( "CREATE TABLE {$imports} (
+		dbDelta(
+			"CREATE TABLE {$imports} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			import_uuid char(36) NOT NULL,
 			status varchar(20) NOT NULL,
@@ -39,8 +40,10 @@ class CIWC_Repository {
 			PRIMARY KEY  (id),
 			UNIQUE KEY import_uuid (import_uuid),
 			KEY created_at (created_at)
-		) {$charset};" );
-		dbDelta( "CREATE TABLE {$changes} (
+		) {$charset};" 
+		);
+		dbDelta(
+			"CREATE TABLE {$changes} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			import_id bigint(20) unsigned NOT NULL,
 			product_id bigint(20) unsigned NOT NULL,
@@ -52,7 +55,8 @@ class CIWC_Repository {
 			PRIMARY KEY  (id),
 			KEY import_id (import_id),
 			KEY product_id (product_id)
-		) {$charset};" );
+		) {$charset};" 
+		);
 	}
 
 	public static function uninstall() {
@@ -107,7 +111,11 @@ class CIWC_Repository {
 		global $wpdb;
 		$wpdb->update(
 			self::imports_table(),
-			array( 'status' => $status, 'summary' => wp_json_encode( $summary ), 'completed_at' => current_time( 'mysql', true ) ),
+			array(
+				'status'       => $status,
+				'summary'      => wp_json_encode( $summary ),
+				'completed_at' => current_time( 'mysql', true ),
+			),
 			array( 'id' => $import_id ),
 			array( '%s', '%s', '%s' ),
 			array( '%d' )
