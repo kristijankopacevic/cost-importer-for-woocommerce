@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kristijankopacevic.github.io/cost-importer-for-woocommerce/sitemap.xml
