@@ -24,6 +24,8 @@ jobs:
       - run: composer run test
       - run: composer run lint
       - name: Fresh WordPress + WooCommerce install
+        env:
+          CIWC_KEEP_CONTAINERS: 1
         run: bash tests/fresh-install.sh
       - name: Browser admin smoke and real screenshot
         run: |
@@ -31,6 +33,11 @@ jobs:
           npx playwright install --with-deps chromium
           mkdir -p screenshots
           node tests/browser-smoke.js
+      - name: Clean up browser smoke environment
+        if: always()
+        run: |
+          docker rm -f ciwc-wp ciwc-db || true
+          docker network rm ciwc-test || true
       - uses: actions/upload-artifact@v4
         with:
           name: real-plugin-screenshots

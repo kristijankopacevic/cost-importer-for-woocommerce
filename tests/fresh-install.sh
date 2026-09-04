@@ -2,6 +2,9 @@
 set -euo pipefail
 
 cleanup() {
+  if [[ "${CIWC_KEEP_CONTAINERS:-0}" == "1" ]]; then
+    return
+  fi
   docker rm -f ciwc-wp ciwc-db >/dev/null 2>&1 || true
   docker network rm ciwc-test >/dev/null 2>&1 || true
 }
