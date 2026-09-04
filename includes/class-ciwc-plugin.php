@@ -204,11 +204,11 @@ class CIWC_Plugin {
 			} else {
 				$product = $allow_id && $row['source_id'] ? wc_get_product( $row['source_id'] ) : false;
 				if ( $product && in_array( $product->get_type(), array( 'simple', 'variable', 'variation' ), true ) ) {
-				$row['product_id'] = $product->get_id();
-				++$counts['matched'];
+					$row['product_id'] = $product->get_id();
+					++$counts['matched'];
 				} else {
-				$row['reason'] = __( 'No matching product or variation SKU was found.', 'cost-importer-for-woocommerce' );
-				++$counts['unmatched'];
+					$row['reason'] = __( 'No matching product or variation SKU was found.', 'cost-importer-for-woocommerce' );
+					++$counts['unmatched'];
 				}
 			}
 			if ( ! empty( $row['reason'] ) ) {
