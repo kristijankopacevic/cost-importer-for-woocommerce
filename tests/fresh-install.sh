@@ -36,7 +36,7 @@ docker run -d --name ciwc-db --network ciwc-test \
   mariadb:11 >/dev/null
 docker run -d --name ciwc-wp --network ciwc-test -p 8080:80 \
   -e WORDPRESS_DB_HOST=ciwc-db:3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpress \
-  -v "$GITHUB_WORKSPACE:/var/www/html/wp-content/plugins/cost-importer-for-woocommerce:ro" \
+  -v "$GITHUB_WORKSPACE/dist/cost-importer-for-woocommerce.zip:/tmp/cost-importer-for-woocommerce.zip:ro" \
   wordpress:php8.2-apache >/dev/null
 
 for attempt in {1..30}; do
@@ -46,7 +46,7 @@ done
 curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null
 
 # The entrypoint sets its own permissions while it starts. Once it is ready,
-# make only its transient directories writable; the plugin mount stays read-only.
+# make only its transient directories writable for plugin installation.
 docker exec ciwc-wp sh -c 'mkdir -p /var/www/html/wp-content/upgrade /var/www/html/wp-content/uploads; chmod 777 /var/www/html/wp-content /var/www/html/wp-content/plugins /var/www/html/wp-content/upgrade /var/www/html/wp-content/uploads'
 
 wp() {
@@ -57,15 +57,14 @@ wp() {
 
 wp core install --url=http://127.0.0.1:8080 --title='CIWC test' --admin_user=admin --admin_password=password --admin_email=admin@example.test --skip-email
 wp plugin install woocommerce --activate
-wp plugin activate cost-importer-for-woocommerce
+wp plugin install /tmp/cost-importer-for-woocommerce.zip --activate
 wp plugin is-active cost-importer-for-woocommerce
 wp plugin deactivate cost-importer-for-woocommerce
 wp plugin is-active cost-importer-for-woocommerce && exit 1
 wp plugin activate cost-importer-for-woocommerce
 wp plugin is-active cost-importer-for-woocommerce
 wp plugin install plugin-check --activate
-docker exec ciwc-wp sh -c 'mkdir -p /tmp/ciwc-runtime && cp -R /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/assets /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/includes /tmp/ciwc-runtime/ && cp /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/cost-importer-for-woocommerce.php /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/README.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/CHANGELOG.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/LICENSE /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/PRIVACY.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/SUPPORT.md /tmp/ciwc-runtime/'
-plugin_check_output="$(wp plugin check /tmp/ciwc-runtime --require=./wp-content/plugins/plugin-check/cli.php)"
+plugin_check_output="$(wp plugin check /var/www/html/wp-content/plugins/cost-importer-for-woocommerce --require=./wp-content/plugins/plugin-check/cli.php)"
 printf '%s\n' "$plugin_check_output"
 if printf '%s\n' "$plugin_check_output" | grep -Eq '(^|[[:space:]])ERROR([[:space:]]|$)'; then
   exit 1
