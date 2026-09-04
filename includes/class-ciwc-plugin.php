@@ -122,6 +122,60 @@ class CIWC_Plugin {
 		return apply_filters( 'ciwc_cost_targets', $targets );
 	}
 
+	/**
+	 * Returns the currently safe cost targets for compatible extensions.
+	 *
+	 * @return array<string, string>
+	 */
+	public function get_cost_targets() {
+		return $this->targets();
+	}
+
+	/**
+	 * Provides safe, reviewable defaults for the mapping form.
+	 *
+	 * Extensions may prefill a mapping, but the administrator still sees and
+	 * submits the complete form before a preview can be built.
+	 *
+	 * @param array<int, string> $header Parsed CSV header row.
+	 * @param array<string, mixed> $data User-scoped parsed upload data.
+	 * @return array<string, mixed>
+	 */
+	private function mapping_defaults( $header, $data ) {
+		$defaults = array(
+			'sku'               => $this->header_guess( $header, 'sku' ),
+			'cost'              => $this->header_guess( $header, 'cost' ),
+			'currency'          => $this->header_guess( $header, 'currency' ),
+			'id'                => $this->header_guess( $header, 'id' ),
+			'fixed_currency'    => get_woocommerce_currency(),
+			'target'            => '_ciwc_cost',
+			'allow_id_fallback' => false,
+		);
+
+		/**
+		 * Filters reviewable mapping form defaults.
+		 *
+		 * @param array<string, mixed> $defaults Proposed mapping defaults.
+		 * @param array<int, string> $header Parsed CSV header row.
+		 * @param array<string, mixed> $data User-scoped parsed upload data.
+		 */
+		$defaults = apply_filters( 'ciwc_mapping_defaults', $defaults, $header, $data );
+		$defaults = is_array( $defaults ) ? $defaults : array();
+		foreach ( array( 'sku', 'cost', 'currency', 'id' ) as $field ) {
+			$defaults[ $field ] = isset( $defaults[ $field ] ) && '' !== $defaults[ $field ] && array_key_exists( absint( $defaults[ $field ] ), $header ) ? absint( $defaults[ $field ] ) : '';
+		}
+		$defaults['fixed_currency']    = isset( $defaults['fixed_currency'] ) && is_string( $defaults['fixed_currency'] ) ? strtoupper( sanitize_text_field( $defaults['fixed_currency'] ) ) : get_woocommerce_currency();
+		$defaults['target']            = isset( $defaults['target'] ) && is_string( $defaults['target'] ) ? sanitize_key( $defaults['target'] ) : '_ciwc_cost';
+		$defaults['allow_id_fallback'] = ! empty( $defaults['allow_id_fallback'] );
+		if ( ! isset( get_woocommerce_currencies()[ $defaults['fixed_currency'] ] ) ) {
+			$defaults['fixed_currency'] = get_woocommerce_currency();
+		}
+		if ( ! array_key_exists( $defaults['target'], $this->targets() ) ) {
+			$defaults['target'] = '_ciwc_cost';
+		}
+		return $defaults;
+	}
+
 	public function preview() {
 		$this->guard();
 		check_admin_referer( 'ciwc_preview' );
@@ -309,6 +363,14 @@ class CIWC_Plugin {
 		$summary['updated'] = $updated;
 		$summary['failed']  = $failed;
 		CIWC_Repository::complete_import( $import_id, $failed ? 'partial' : 'completed', $summary );
+		/**
+		 * Fires after a confirmed import has completed its audit record.
+		 *
+		 * @param int $import_id Import record ID.
+		 * @param array<string, mixed> $prepared Reviewed mapping and row data.
+		 * @param array<string, int> $summary Completed import summary.
+		 */
+		do_action( 'ciwc_import_confirmed', $import_id, $prepared, $summary );
 		delete_transient( $this->transient_key( $id ) );
 		$this->redirect( array( 'ciwc_done' => $import_id ) );
 	}
@@ -433,7 +495,8 @@ class CIWC_Plugin {
 	}
 
 	private function mapping_view( $preview_id, $data ) {
-		$header = $data['parsed']['header'];
+		$header   = $data['parsed']['header'];
+		$defaults = $this->mapping_defaults( $header, $data );
 		?>
 		<h2><?php esc_html_e( 'Map supplier columns', 'cost-importer-for-woocommerce' ); ?></h2>
 		<p>
@@ -445,23 +508,24 @@ class CIWC_Plugin {
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ciwc-card">
 			<input type="hidden" name="action" value="ciwc_preview"><input type="hidden" name="preview_id" value="<?php echo esc_attr( $preview_id ); ?>">
 			<?php wp_nonce_field( 'ciwc_preview' ); ?>
+			<?php do_action( 'ciwc_mapping_profile_picker', $preview_id, $data ); ?>
 			<table class="form-table"><tbody>
-			<tr><th><label><?php esc_html_e( 'SKU column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'sku', $header, $this->header_guess( $header, 'sku' ), true ); ?><p class="description"><?php esc_html_e( 'Matches simple-product and variation SKUs exactly.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
-			<tr><th><label><?php esc_html_e( 'Cost column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'cost', $header, $this->header_guess( $header, 'cost' ), true ); ?></td></tr>
-			<tr><th><label><?php esc_html_e( 'Currency column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'currency', $header, $this->header_guess( $header, 'currency' ) ); ?><p class="description"><?php esc_html_e( 'Optional. If mapped, every value must equal the selected import currency.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
+			<tr><th><label><?php esc_html_e( 'SKU column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'sku', $header, $defaults['sku'], true ); ?><p class="description"><?php esc_html_e( 'Matches simple-product and variation SKUs exactly.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
+			<tr><th><label><?php esc_html_e( 'Cost column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'cost', $header, $defaults['cost'], true ); ?></td></tr>
+			<tr><th><label><?php esc_html_e( 'Currency column', 'cost-importer-for-woocommerce' ); ?></label></th><td><?php $this->select( 'currency', $header, $defaults['currency'] ); ?><p class="description"><?php esc_html_e( 'Optional. If mapped, every value must equal the selected import currency.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
 			<tr><th><label><?php esc_html_e( 'Import currency', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="fixed_currency">
 			<?php
 			foreach ( get_woocommerce_currencies() as $code => $name ) {
-				printf( '<option value="%1$s" %2$s>%1$s — %3$s</option>', esc_attr( $code ), selected( get_woocommerce_currency(), $code, false ), esc_html( $name ) ); }
+				printf( '<option value="%1$s" %2$s>%1$s — %3$s</option>', esc_attr( $code ), selected( $defaults['fixed_currency'], $code, false ), esc_html( $name ) ); }
 			?>
 			</select></td></tr>
 			<tr><th><label><?php esc_html_e( 'Cost field to update', 'cost-importer-for-woocommerce' ); ?></label></th><td><select name="target">
 			<?php
 			foreach ( $this->targets() as $key => $label ) {
-				printf( '<option value="%1$s">%2$s</option>', esc_attr( $key ), esc_html( $label ) ); }
+				printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $key ), selected( $defaults['target'], $key, false ), esc_html( $label ) ); }
 			?>
 			</select><p class="description"><?php esc_html_e( 'Only the chosen field changes. Third-party fields are offered only after a compatible plugin identifies itself.', 'cost-importer-for-woocommerce' ); ?></p></td></tr>
-			<tr><th><label><?php esc_html_e( 'Product ID fallback', 'cost-importer-for-woocommerce' ); ?></label></th><td><label><input type="checkbox" name="allow_id_fallback" value="1"> <?php esc_html_e( 'Allow an ID column only when an SKU has no match', 'cost-importer-for-woocommerce' ); ?></label><br><?php $this->select( 'id', $header, $this->header_guess( $header, 'id' ) ); ?></td></tr>
+			<tr><th><label><?php esc_html_e( 'Product ID fallback', 'cost-importer-for-woocommerce' ); ?></label></th><td><label><input type="checkbox" name="allow_id_fallback" value="1" <?php checked( $defaults['allow_id_fallback'] ); ?>> <?php esc_html_e( 'Allow an ID column only when an SKU has no match', 'cost-importer-for-woocommerce' ); ?></label><br><?php $this->select( 'id', $header, $defaults['id'] ); ?></td></tr>
 			</tbody></table>
 			<?php submit_button( __( 'Build safe preview', 'cost-importer-for-woocommerce' ) ); ?>
 		</form>

@@ -4,7 +4,7 @@ Tags: woocommerce, csv import, product cost, supplier costs, inventory
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,9 @@ The default target is the plugin's own internal cost field. Compatible third-par
 3. Activate it with WooCommerce active, then open WooCommerce > Cost Importer.
 
 == Changelog ==
+
+= 1.0.1 =
+* Add reviewable mapping-default extension points for compatible private add-ons. The full mapping form, preview, and explicit confirmation remain mandatory.
 
 = 1.0.0 =
 * First public release with review-first CSV cost imports, unmatched reports, import history, and guarded rollback.
