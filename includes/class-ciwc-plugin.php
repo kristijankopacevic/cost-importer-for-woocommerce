@@ -42,7 +42,6 @@ class CIWC_Plugin {
 		if ( ! current_user_can( self::CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to import product costs.', 'cost-importer-for-woocommerce' ), 403 );
 		}
-		check_admin_referer( $action );
 	}
 
 	private function redirect( $args = array() ) {
