@@ -1,0 +1,59 @@
+name: Verify and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer run syntax
+      - run: composer run test
+      - run: composer run lint
+      - name: Build allow-listed ZIP
+        shell: pwsh
+        run: ./scripts/package.ps1
+      - name: Verify archive contents
+        run: |
+          unzip -l dist/cost-importer-for-woocommerce.zip
+          test "$(unzip -Z1 dist/cost-importer-for-woocommerce.zip | grep -c '^cost-importer-for-woocommerce/cost-importer-for-woocommerce.php$')" = 1
+          ! unzip -Z1 dist/cost-importer-for-woocommerce.zip | grep -E '/(tests|vendor|node_modules|\.git|\.github)/'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cost-importer-for-woocommerce
+          path: |
+            dist/cost-importer-for-woocommerce.zip
+            dist/cost-importer-for-woocommerce.zip.sha256
+  release:
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cost-importer-for-woocommerce
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Install
+            Download `cost-importer-for-woocommerce.zip`, then use **Plugins → Add New → Upload Plugin** in a WordPress site with WooCommerce active.
+
+            SHA-256 is attached in `cost-importer-for-woocommerce.zip.sha256`.
+          files: |
+            dist/cost-importer-for-woocommerce.zip
+            dist/cost-importer-for-woocommerce.zip.sha256

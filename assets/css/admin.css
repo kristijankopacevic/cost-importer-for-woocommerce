@@ -1,0 +1,7 @@
+.ciwc { max-width: 1160px; }
+.ciwc-card { background: #fff; border: 1px solid #ccd0d4; padding: 20px; margin: 16px 0 28px; }
+.ciwc-counts { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+.ciwc-counts li { background: #f0f6fc; border-radius: 3px; padding: 8px 12px; margin: 0; }
+.ciwc-confirm { margin-top: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ciwc-confirm input { min-width: 180px; }
+.ciwc-inline { display: inline-block; margin-left: 4px; }

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<ruleset name="Cost Importer for WooCommerce">
+  <description>WordPress coding standards for distributable plugin source.</description>
+  <file>cost-importer-for-woocommerce.php</file>
+  <file>includes</file>
+  <rule ref="WordPress">
+    <exclude name="WordPress.Files.FileName"/>
+    <exclude name="WordPress.PHP.DevelopmentFunctions"/>
+  </rule>
+  <rule ref="PHPCompatibilityWP" />
+  <config name="testVersion" value="7.4-"/>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/tests/*</exclude-pattern>
+</ruleset>
