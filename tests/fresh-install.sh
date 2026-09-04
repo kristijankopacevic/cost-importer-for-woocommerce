@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cleanup() {
+  docker rm -f ciwc-wp ciwc-db >/dev/null 2>&1 || true
+  docker network rm ciwc-test >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+docker network create ciwc-test >/dev/null
+docker run -d --name ciwc-db --network ciwc-test \
+  -e MARIADB_DATABASE=wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_ROOT_PASSWORD=root \
+  mariadb:11 >/dev/null
+docker run -d --name ciwc-wp --network ciwc-test -p 8080:80 \
+  -e WORDPRESS_DB_HOST=ciwc-db:3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpress \
+  -v "$GITHUB_WORKSPACE:/var/www/html/wp-content/plugins/cost-importer-for-woocommerce:ro" \
+  wordpress:6.6-php8.2-apache >/dev/null
+
+for attempt in {1..30}; do
+  if curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null; then break; fi
+  sleep 2
+done
+curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null
+
+wp() {
+  docker run --rm --network ciwc-test --volumes-from ciwc-wp wordpress:cli-php8.2 wp --path=/var/www/html --allow-root "$@"
+}
+
+wp core install --url=http://127.0.0.1:8080 --title='CIWC test' --admin_user=admin --admin_password=password --admin_email=admin@example.test --skip-email
+wp plugin install woocommerce --activate
+wp plugin activate cost-importer-for-woocommerce
+wp plugin is-active cost-importer-for-woocommerce
+wp eval '$p = new WC_Product_Simple(); $p->set_name("Blue Mug"); $p->set_sku("MUG-BLUE"); $p->save(); $v = new WC_Product_Variation(); $v->set_parent_id($p->get_id()); $v->set_sku("VARIATION-XL"); $v->save(); echo "products-ready";'
+wp eval 'if (!class_exists("CIWC_Plugin") || !class_exists("CIWC_CSV") || "12.5" !== CIWC_CSV::parse_cost("12,50")) { exit(1); } echo "plugin-runtime-pass";'
+echo 'FRESH_INSTALL_PASS'

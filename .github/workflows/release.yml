@@ -23,6 +23,18 @@ jobs:
       - run: composer run syntax
       - run: composer run test
       - run: composer run lint
+      - name: Fresh WordPress + WooCommerce install
+        run: bash tests/fresh-install.sh
+      - name: Browser admin smoke and real screenshot
+        run: |
+          npm install --no-save playwright@1.50.1
+          npx playwright install --with-deps chromium
+          mkdir -p screenshots
+          node tests/browser-smoke.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-plugin-screenshots
+          path: screenshots/upload.png
       - name: Build allow-listed ZIP
         shell: pwsh
         run: ./scripts/package.ps1

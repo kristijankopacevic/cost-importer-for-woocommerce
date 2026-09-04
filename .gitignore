@@ -1,4 +1,5 @@
 /dist/
 /.phpunit.cache/
 /vendor/
+/screenshots/
 .DS_Store
