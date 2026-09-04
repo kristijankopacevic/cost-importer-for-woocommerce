@@ -7,7 +7,27 @@ cleanup() {
 }
 trap cleanup EXIT
 
+pull_image() {
+  local image="$1"
+  local attempt
+
+  # Docker Hub occasionally returns a transient 5xx response to a manifest
+  # request on hosted runners. Retry the pull before classifying the test as a
+  # product failure.
+  for attempt in {1..4}; do
+    if docker pull "$image"; then
+      return 0
+    fi
+    sleep "$((attempt * 3))"
+  done
+
+  return 1
+}
+
 docker network create ciwc-test >/dev/null
+pull_image mariadb:11
+pull_image wordpress:6.6-php8.2-apache
+pull_image wordpress:cli-php8.2
 docker run -d --name ciwc-db --network ciwc-test \
   -e MARIADB_DATABASE=wordpress -e MARIADB_USER=wordpress -e MARIADB_PASSWORD=wordpress -e MARIADB_ROOT_PASSWORD=root \
   mariadb:11 >/dev/null
