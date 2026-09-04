@@ -1,5 +1,7 @@
 <?php
 /**
+ * Coordinates the secure WooCommerce cost-import admin workflow.
+ *
  * WordPress admin workflow and WooCommerce product updates.
  *
  * @package CostImporterForWooCommerce

@@ -1,5 +1,7 @@
 <?php
 /**
+ * Queries public GitHub release metadata for plugin updates.
+ *
  * Token-free updates from the public GitHub release API.
  *
  * @package CostImporterForWooCommerce
