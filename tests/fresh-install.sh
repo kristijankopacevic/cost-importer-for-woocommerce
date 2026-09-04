@@ -36,6 +36,10 @@ docker run -d --name ciwc-wp --network ciwc-test -p 8080:80 \
   -v "$GITHUB_WORKSPACE:/var/www/html/wp-content/plugins/cost-importer-for-woocommerce:ro" \
   wordpress:php8.2-apache >/dev/null
 
+# The plugin source is intentionally read-only. Make the unrelated transient
+# directories writable to the CLI image so it can install current WooCommerce.
+docker exec ciwc-wp sh -c 'mkdir -p /var/www/html/wp-content/upgrade /var/www/html/wp-content/uploads; chmod 777 /var/www/html/wp-content /var/www/html/wp-content/plugins /var/www/html/wp-content/upgrade /var/www/html/wp-content/uploads'
+
 for attempt in {1..30}; do
   if curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null; then break; fi
   sleep 2
