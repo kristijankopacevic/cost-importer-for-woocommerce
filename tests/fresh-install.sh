@@ -23,7 +23,9 @@ done
 curl --fail --silent http://127.0.0.1:8080/wp-admin/install.php >/dev/null
 
 wp() {
-  docker run --rm --network ciwc-test --volumes-from ciwc-wp wordpress:cli-php8.2 wp --path=/var/www/html --allow-root "$@"
+  docker run --rm --network ciwc-test --volumes-from ciwc-wp \
+    -e WORDPRESS_DB_HOST=ciwc-db:3306 -e WORDPRESS_DB_USER=wordpress -e WORDPRESS_DB_PASSWORD=wordpress -e WORDPRESS_DB_NAME=wordpress \
+    wordpress:cli-php8.2 wp --path=/var/www/html --allow-root "$@"
 }
 
 wp core install --url=http://127.0.0.1:8080 --title='CIWC test' --admin_user=admin --admin_password=password --admin_email=admin@example.test --skip-email
