@@ -6,9 +6,11 @@
   <rule ref="WordPress">
     <exclude name="WordPress.Files.FileName"/>
     <exclude name="WordPress.PHP.DevelopmentFunctions"/>
-    <exclude name="WordPress.Commenting"/>
-    <exclude name="WordPress.WhiteSpace"/>
-    <exclude name="WordPress.Arrays"/>
+    <exclude name="Squiz.Commenting.ClassComment"/>
+    <exclude name="Squiz.Commenting.FunctionComment"/>
+    <exclude name="Squiz.WhiteSpace.FunctionSpacing"/>
+    <exclude name="Squiz.WhiteSpace.ControlStructureSpacing"/>
+    <exclude name="Squiz.WhiteSpace.SuperfluousWhitespace"/>
     <exclude name="WordPress.PHP.YodaConditions"/>
     <exclude name="WordPress.WP.I18n"/>
   </rule>
