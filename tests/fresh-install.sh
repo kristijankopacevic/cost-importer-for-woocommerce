@@ -59,8 +59,13 @@ wp core install --url=http://127.0.0.1:8080 --title='CIWC test' --admin_user=adm
 wp plugin install woocommerce --activate
 wp plugin activate cost-importer-for-woocommerce
 wp plugin is-active cost-importer-for-woocommerce
+wp plugin deactivate cost-importer-for-woocommerce
+wp plugin is-active cost-importer-for-woocommerce && exit 1
+wp plugin activate cost-importer-for-woocommerce
+wp plugin is-active cost-importer-for-woocommerce
 wp plugin install plugin-check --activate
 wp plugin check /var/www/html/wp-content/plugins/cost-importer-for-woocommerce --require=./wp-content/plugins/plugin-check/cli.php
+wp eval 'if ( ! class_exists("\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil") ) { exit(1); } echo "hpos-declaration-runtime-pass";'
 wp eval '$p = new WC_Product_Simple(); $p->set_name("Blue Mug"); $p->set_sku("MUG-BLUE"); $p->save(); $v = new WC_Product_Variation(); $v->set_parent_id($p->get_id()); $v->set_sku("VARIATION-XL"); $v->save(); echo "products-ready";'
 wp eval 'if (!class_exists("CIWC_Plugin") || !class_exists("CIWC_CSV") || "12.5" !== CIWC_CSV::parse_cost("12,50")) { exit(1); } echo "plugin-runtime-pass";'
 echo 'FRESH_INSTALL_PASS'

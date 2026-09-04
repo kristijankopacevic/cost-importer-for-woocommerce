@@ -1,4 +1,5 @@
 const { chromium } = require("playwright");
+const fs = require("fs");
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -42,5 +43,38 @@ const { chromium } = require("playwright");
     throw new Error("Cost Importer completion notice did not render");
   }
   await page.screenshot({ path: "screenshots/complete-history.png", fullPage: true });
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Unmatched CSV" }).click();
+  const download = await downloadPromise;
+  const reportPath = await download.path();
+  if (!reportPath || !fs.readFileSync(reportPath, "utf8").includes("TSHIRT-RED-S")) {
+    throw new Error("Unmatched report did not contain the expected supplier row");
+  }
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle" }),
+    page.getByRole("button", { name: "Safe rollback" }).click(),
+  ]);
+  if (!(await page.getByText("Import recorded.").count())) {
+    throw new Error("Cost Importer rollback completion notice did not render");
+  }
+
+  await page.goto("http://127.0.0.1:8080/wp-admin/admin.php?page=ciwc", { waitUntil: "networkidle" });
+  await page.setInputFiles("#ciwc_csv", "samples/supplier-costs-errors.csv");
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle" }),
+    page.getByRole("button", { name: "Upload and map columns" }).click(),
+  ]);
+  await page.locator('select[name="fixed_currency"]').selectOption("EUR");
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: "networkidle" }),
+    page.getByRole("button", { name: "Build safe preview" }).click(),
+  ]);
+  if (!(await page.getByText("6 invalid/duplicate").count()) || !(await page.getByText("1 unmatched").count())) {
+    throw new Error("Duplicate, malformed, missing-SKU, and currency validation counts did not render");
+  }
+  await page.screenshot({ path: "screenshots/exceptions.png", fullPage: true });
   await browser.close();
 })();
