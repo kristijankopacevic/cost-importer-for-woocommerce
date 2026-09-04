@@ -10,7 +10,11 @@
 defined( 'ABSPATH' ) || exit;
 
 class CIWC_Plugin {
-	/** @var CIWC_Plugin|null Singleton instance. */
+	/**
+	 * Singleton instance.
+	 *
+	 * @var CIWC_Plugin|null
+	 */
 	private static $instance;
 	const CAPABILITY = 'manage_woocommerce';
 
