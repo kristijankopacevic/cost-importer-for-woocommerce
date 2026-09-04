@@ -39,7 +39,7 @@ function ciwc_uninstall() {
 
 add_action( 'before_woocommerce_init', static function() {
 	if ( class_exists( '\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil' ) ) {
-		\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil::declare_compatibility( 'custom_order_tables', CIWC_FILE, true );
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', CIWC_FILE, true );
 	}
 } );
 
