@@ -1,8 +1,6 @@
 # Support
 
-Before public launch, configure a customer-facing support address in the GitHub repository and landing page. Do not publish a personal or private address by accident.
-
-Until then, use the repository’s issue tracker for reproducible bug reports. Include the plugin version, WooCommerce version, WordPress version, and a synthetic/redacted CSV that reproduces the problem. Never attach real supplier prices or customer data.
+Contact [kristijan.kopacevic.ilr@gmail.com](mailto:kristijan.kopacevic.ilr@gmail.com) for support. For reproducible bugs, include the plugin version, WooCommerce version, WordPress version, and a synthetic/redacted CSV that reproduces the problem. Never attach real supplier prices or customer data.
 
 ## What to expect
 

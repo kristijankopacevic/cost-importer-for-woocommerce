@@ -23,11 +23,22 @@ Sources consulted 2026-09-04:
 - [Payhip VAT/tax handling](https://payhip.com/features/vat-taxes) — viable fallback, but it requires connecting a payment processor.
 - [Gumroad fees](https://gumroad.com/help/article/66-gumroads-fees.html) — viable fallback, but its direct-sale fee is higher.
 
+Lemon Squeezy remains the recommended storefront: it can host a clean product page and checkout for digital downloads while acting as merchant of record. A live storefront cannot be created until the owner completes its required account, identity, tax, payout, and terms steps.
+
 Do not create a store, accept terms, supply tax information, pass identity checks, or connect payouts without the business owner. Those are required personal/legal actions.
 
-## Initial Pro offer
+## Initial Pro pricing
 
-Test an early-adopter **€29 lifetime** Pro offer, limited in quantity and clearly described as such. After validation, move to **€29/year per single site**. This is deliberately below comparable WooCommerce product-import/cost tooling while avoiding an unsupported promise of a perpetual SaaS service.
+The approved launch prices are:
+
+- **€4.99 lifetime** — introductory one-time Pro purchase. State exactly what is included at the time of sale; do not imply hosted services or an entitlement service.
+- **€9.99/year per single site** — annual Pro option for continuing updates and support after the introductory offer.
+
+Neither offer is on sale until a real Pro package exists and the Lemon Squeezy storefront is activated. The free plugin remains fully useful without either purchase.
+
+## Stripe Sandbox check
+
+Stripe Managed Payments was configured only in Sandbox as a technical checkout alternative: one Pro product has a €4.99 one-off price and a €9.99 annual price. This is not a live storefront decision. The static GitHub Pages site cannot safely create Stripe Checkout Sessions without a separate server-side integration; never place a Stripe secret in this repository. Live use still requires the owner's business verification, legal/tax decisions, and a deliberate provider choice.
 
 ## Delivery design
 

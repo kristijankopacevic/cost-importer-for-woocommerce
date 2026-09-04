@@ -32,6 +32,10 @@ The foreground limit is 2 MiB / 2,000 rows. This prevents a long-running browser
 
 No telemetry, analytics, tracking, or supplier data leaves the site. The only external request is WordPress’s normal update check to the public GitHub Releases API, cached for 12 hours; it sends a HTTPS request with no token and receives public release metadata. See [PRIVACY.md](PRIVACY.md).
 
+## Support
+
+Email [kristijan.kopacevic.ilr@gmail.com](mailto:kristijan.kopacevic.ilr@gmail.com) with the plugin version, WooCommerce version, WordPress version, and a synthetic/redacted CSV when reporting a reproducible issue.
+
 ## Development
 
 Run `composer install`, then `composer run test` for the PHPUnit parser/export suite and `composer run lint` for WPCS. The release workflow also performs a current WordPress + WooCommerce fresh install, Plugin Check against the allow-listed runtime payload, HPOS declaration check, browser import/rollback/report smoke test, and ZIP validation. `scripts/package.ps1` creates an allow-listed merchant ZIP in `dist/`.
