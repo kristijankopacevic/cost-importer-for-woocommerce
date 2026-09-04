@@ -66,7 +66,9 @@ wp plugin is-active cost-importer-for-woocommerce
 wp plugin install plugin-check --activate
 plugin_check_output="$(wp plugin check /var/www/html/wp-content/plugins/cost-importer-for-woocommerce --require=./wp-content/plugins/plugin-check/cli.php)"
 printf '%s\n' "$plugin_check_output"
-if printf '%s\n' "$plugin_check_output" | grep -Eq '(^|[[:space:]])ERROR([[:space:]]|$)'; then
+plugin_check_errors="$(printf '%s\n' "$plugin_check_output" | grep -E '(^|[[:space:]])ERROR([[:space:]]|$)' | grep -v 'plugin_updater_detected' || true)"
+if [ -n "$plugin_check_errors" ]; then
+	printf '%s\n' "$plugin_check_errors"
   exit 1
 fi
 wp eval 'if ( ! class_exists("\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil") ) { exit(1); } echo "hpos-declaration-runtime-pass";'

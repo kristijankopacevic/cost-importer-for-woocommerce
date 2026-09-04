@@ -7,7 +7,7 @@ $zip = Join-Path $OutputDirectory "$slug.zip"
 if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 New-Item -ItemType Directory -Force -Path (Join-Path $stage $slug) | Out-Null
-$allow = @('assets','includes','cost-importer-for-woocommerce.php','README.md','CHANGELOG.md','LICENSE','PRIVACY.md','SUPPORT.md')
+$allow = @('assets','includes','cost-importer-for-woocommerce.php','readme.txt','LICENSE')
 foreach ($item in $allow) { Copy-Item -LiteralPath (Join-Path $projectRoot $item) -Destination (Join-Path $stage $slug) -Recurse -Force }
 Compress-Archive -LiteralPath (Join-Path $stage $slug) -DestinationPath $zip -CompressionLevel Optimal
 Remove-Item -LiteralPath $stage -Recurse -Force

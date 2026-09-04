@@ -93,13 +93,13 @@ class CIWC_CSV {
 	 * @return array<int,array<int,string>>|WP_Error CSV records or a validation error.
 	 */
 	private static function rows( $contents, $delimiter ) {
-		$handle = fopen( 'php://temp', 'r+' );
-		fwrite( $handle, $contents );
+		$handle = fopen( 'php://temp', 'r+' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Memory-backed PHP stream, not an external filesystem operation.
+		fwrite( $handle, $contents ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Memory-backed PHP stream, not an external filesystem operation.
 		rewind( $handle );
 		$rows = array();
 		while ( false !== ( $row = fgetcsv( $handle, 0, $delimiter ) ) ) {
 			if ( count( $rows ) >= self::MAX_ROWS + 1 ) {
-				fclose( $handle );
+				fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Memory-backed PHP stream, not an external filesystem operation.
 				return new WP_Error( 'ciwc_row_limit', __( 'This CSV has more than 2,000 data rows. Use a Pro/background import when available.', 'cost-importer-for-woocommerce' ) );
 			}
 			if ( array( null ) === $row || array( '' ) === $row ) {
@@ -112,7 +112,7 @@ class CIWC_CSV {
 				$row 
 			);
 		}
-		fclose( $handle );
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Memory-backed PHP stream, not an external filesystem operation.
 		return $rows;
 	}
 
@@ -179,12 +179,12 @@ class CIWC_CSV {
 		nocache_headers();
 		header( 'Content-Type: text/csv; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
-		$out = fopen( 'php://output', 'w' );
+		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- HTTP response stream, not an external filesystem operation.
 		fputcsv( $out, array_map( array( __CLASS__, 'safe_cell' ), $header ) );
 		foreach ( $rows as $row ) {
 			fputcsv( $out, array_map( array( __CLASS__, 'safe_cell' ), $row ) );
 		}
-		fclose( $out );
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- HTTP response stream, not an external filesystem operation.
 		exit;
 	}
 }

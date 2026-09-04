@@ -168,6 +168,7 @@ class CIWC_Plugin {
 			} elseif ( is_wp_error( $cost ) ) {
 				$reason = $cost->get_error_message();
 			} elseif ( ! isset( $currencies[ $row_currency ] ) || $row_currency !== $currency ) {
+				/* translators: %s: expected ISO currency code. */
 				$reason = sprintf( __( 'Currency must be %s.', 'cost-importer-for-woocommerce' ), $currency );
 			} elseif ( '' !== $sku && isset( $seen[ strtolower( $sku ) ] ) ) {
 				$reason                                        = __( 'Duplicate supplier SKU row; neither duplicate will be imported.', 'cost-importer-for-woocommerce' );
@@ -435,7 +436,10 @@ class CIWC_Plugin {
 		$header = $data['parsed']['header'];
 		?>
 		<h2><?php esc_html_e( 'Map supplier columns', 'cost-importer-for-woocommerce' ); ?></h2>
-		<p><?php printf( esc_html__( 'File: %s. The parsed file is held only for this 30-minute review session.', 'cost-importer-for-woocommerce' ), '<code>' . esc_html( $data['filename'] ) . '</code>' ); ?></p>
+		<p><?php
+		/* translators: %s: uploaded CSV filename. */
+		printf( esc_html__( 'File: %s. The parsed file is held only for this 30-minute review session.', 'cost-importer-for-woocommerce' ), '<code>' . esc_html( $data['filename'] ) . '</code>' );
+		?></p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ciwc-card">
 			<input type="hidden" name="action" value="ciwc_preview"><input type="hidden" name="preview_id" value="<?php echo esc_attr( $preview_id ); ?>">
 			<?php wp_nonce_field( 'ciwc_preview' ); ?>
@@ -467,7 +471,24 @@ class CIWC_Plugin {
 		?>
 		<h2><?php esc_html_e( 'Review before updating costs', 'cost-importer-for-woocommerce' ); ?></h2>
 		<div class="ciwc-card"><p><strong><?php esc_html_e( 'Target:', 'cost-importer-for-woocommerce' ); ?></strong> <code><?php echo esc_html( $p['target'] ); ?></code> &middot; <strong><?php esc_html_e( 'Currency:', 'cost-importer-for-woocommerce' ); ?></strong> <?php echo esc_html( $p['currency'] ); ?></p>
-			<ul class="ciwc-counts"><li><?php printf( esc_html__( '%d matched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['matched'] ); ?></li><li><?php printf( esc_html__( '%d unmatched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['unmatched'] ); ?></li><li><?php printf( esc_html__( '%d ambiguous', 'cost-importer-for-woocommerce' ), (int) $p['counts']['ambiguous'] ); ?></li><li><?php printf( esc_html__( '%d invalid/duplicate', 'cost-importer-for-woocommerce' ), (int) $p['counts']['invalid'] ); ?></li></ul>
+			<ul class="ciwc-counts">
+				<li><?php
+				/* translators: %d: number of valid product matches. */
+				printf( esc_html__( '%d matched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['matched'] );
+				?></li>
+				<li><?php
+				/* translators: %d: number of unmatched supplier rows. */
+				printf( esc_html__( '%d unmatched', 'cost-importer-for-woocommerce' ), (int) $p['counts']['unmatched'] );
+				?></li>
+				<li><?php
+				/* translators: %d: number of ambiguous SKU matches. */
+				printf( esc_html__( '%d ambiguous', 'cost-importer-for-woocommerce' ), (int) $p['counts']['ambiguous'] );
+				?></li>
+				<li><?php
+				/* translators: %d: number of invalid or duplicate supplier rows. */
+				printf( esc_html__( '%d invalid/duplicate', 'cost-importer-for-woocommerce' ), (int) $p['counts']['invalid'] );
+				?></li>
+			</ul>
 			<p><?php esc_html_e( 'Only matched, valid rows will be updated. All other rows will be retained in the unmatched report.', 'cost-importer-for-woocommerce' ); ?></p>
 			<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Row', 'cost-importer-for-woocommerce' ); ?></th><th>SKU</th><th><?php esc_html_e( 'Product', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Cost', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Status', 'cost-importer-for-woocommerce' ); ?></th></tr></thead><tbody>
 			<?php
@@ -497,7 +518,8 @@ class CIWC_Plugin {
 		}
 		$summary = json_decode( $import['summary'], true );
 		echo '<div class="notice notice-success"><p><strong>' . esc_html__( 'Import recorded.', 'cost-importer-for-woocommerce' ) . '</strong> ';
-		printf( esc_html__( '%d costs updated; %d update failures; %d unmatched/ambiguous/invalid rows.', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ), (int) ( ( $summary['unmatched'] ?? 0 ) + ( $summary['ambiguous'] ?? 0 ) + ( $summary['invalid'] ?? 0 ) ) );
+		/* translators: 1: number of updated costs, 2: number of update failures, 3: number of excluded rows. */
+		printf( esc_html__( '%1$d costs updated; %2$d update failures; %3$d unmatched/ambiguous/invalid rows.', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ), (int) ( ( $summary['unmatched'] ?? 0 ) + ( $summary['ambiguous'] ?? 0 ) + ( $summary['invalid'] ?? 0 ) ) );
 		echo '</p></div>';
 	}
 
@@ -515,7 +537,10 @@ class CIWC_Plugin {
 		foreach ( $history as $import ) :
 			$summary = json_decode( $import['summary'], true );
 			?>
-			<tr><td><?php echo esc_html( get_date_from_gmt( $import['created_at'], get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ); ?></td><td><?php echo esc_html( $import['filename'] ); ?></td><td><code><?php echo esc_html( $import['target_meta_key'] ); ?></code></td><td><?php echo esc_html( $import['status'] ); ?></td><td><?php printf( esc_html__( '%d updated / %d failed', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ) ); ?></td><td><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ciwc_unmatched&import_id=' . (int) $import['id'] ), 'ciwc_unmatched' ) ); ?>"><?php esc_html_e( 'Unmatched CSV', 'cost-importer-for-woocommerce' ); ?></a>
+			<tr><td><?php echo esc_html( get_date_from_gmt( $import['created_at'], get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ); ?></td><td><?php echo esc_html( $import['filename'] ); ?></td><td><code><?php echo esc_html( $import['target_meta_key'] ); ?></code></td><td><?php echo esc_html( $import['status'] ); ?></td><td><?php
+			/* translators: 1: number of updated costs, 2: number of failed updates. */
+			printf( esc_html__( '%1$d updated / %2$d failed', 'cost-importer-for-woocommerce' ), (int) ( $summary['updated'] ?? 0 ), (int) ( $summary['failed'] ?? 0 ) );
+			?></td><td><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ciwc_unmatched&import_id=' . (int) $import['id'] ), 'ciwc_unmatched' ) ); ?>"><?php esc_html_e( 'Unmatched CSV', 'cost-importer-for-woocommerce' ); ?></a>
 			<?php
 			if ( in_array( $import['status'], array( 'completed', 'partial' ), true ) ) :
 				?>
