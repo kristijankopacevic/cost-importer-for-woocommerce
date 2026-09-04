@@ -11,7 +11,11 @@ class CIWC_CSV {
 	const MAX_BYTES = 2097152; // 2 MiB: foreground imports must remain reviewable.
 	const MAX_ROWS  = 2000;
 
-	/** @return array<string,mixed>|WP_Error */
+	/**
+	 * Parses a bounded text CSV into a header and data rows.
+	 *
+	 * @return array<string,mixed>|WP_Error Parsed CSV data or a validation error.
+	 */
 	public static function parse_file( $path ) {
 		if ( ! is_readable( $path ) || filesize( $path ) > self::MAX_BYTES ) {
 			return new WP_Error( 'ciwc_file_size', __( 'The CSV is missing, unreadable, or exceeds the 2 MiB foreground-import limit.', 'cost-importer-for-woocommerce' ) );
@@ -50,7 +54,11 @@ class CIWC_CSV {
 		);
 	}
 
-	/** @return string|WP_Error */
+	/**
+	 * Converts supported byte-order-mark encodings to UTF-8.
+	 *
+	 * @return string|WP_Error UTF-8 text or a validation error.
+	 */
 	private static function decode_text( $contents ) {
 		if ( 0 === strpos( $contents, "\xEF\xBB\xBF" ) ) {
 			return substr( $contents, 3 );
@@ -79,7 +87,11 @@ class CIWC_CSV {
 		return $best;
 	}
 
-	/** @return array<int,array<int,string>>|WP_Error */
+	/**
+	 * Parses CSV records after a delimiter has been selected.
+	 *
+	 * @return array<int,array<int,string>>|WP_Error CSV records or a validation error.
+	 */
 	private static function rows( $contents, $delimiter ) {
 		$handle = fopen( 'php://temp', 'r+' );
 		fwrite( $handle, $contents );
@@ -114,7 +126,11 @@ class CIWC_CSV {
 		return false;
 	}
 
-	/** @return string|WP_Error Normalized decimal, never a float. */
+	/**
+	 * Normalizes a supplier cost without converting it to a float.
+	 *
+	 * @return string|WP_Error Normalized decimal or a validation error.
+	 */
 	public static function parse_cost( $value ) {
 		$value = trim( str_replace( array( "\xC2\xA0", ' ' ), '', (string) $value ) );
 		$value = preg_replace( '/[€$£]/u', '', $value );
@@ -150,7 +166,8 @@ class CIWC_CSV {
 		if ( ! preg_match( '/^\d+(?:\.\d{1,4})?$/', $cost ) || (float) $cost < 0 ) {
 			return new WP_Error( 'ciwc_cost', __( 'Cost is invalid.', 'cost-importer-for-woocommerce' ) );
 		}
-		return rtrim( rtrim( $cost, '0' ), '.' ) ?: '0';
+		$normalized = rtrim( rtrim( $cost, '0' ), '.' );
+		return '' === $normalized ? '0' : $normalized;
 	}
 
 	public static function safe_cell( $value ) {

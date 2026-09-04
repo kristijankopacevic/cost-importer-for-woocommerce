@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 class CIWC_Updater {
+	/** @var CIWC_Updater|null Singleton instance. */
 	private static $instance;
 	const API = 'https://api.github.com/repos/kristijankopacevic/cost-importer-for-woocommerce/releases/latest';
 

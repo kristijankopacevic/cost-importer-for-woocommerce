@@ -8,6 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 
 class CIWC_Plugin {
+	/** @var CIWC_Plugin|null Singleton instance. */
 	private static $instance;
 	const CAPABILITY = 'manage_woocommerce';
 
@@ -31,7 +32,7 @@ class CIWC_Plugin {
 		add_submenu_page( 'woocommerce', __( 'Cost Importer', 'cost-importer-for-woocommerce' ), __( 'Cost Importer', 'cost-importer-for-woocommerce' ), self::CAPABILITY, 'ciwc', array( $this, 'page' ) );
 	}
 
-	private function guard( $action ) {
+	private function guard() {
 		if ( ! current_user_can( self::CAPABILITY ) ) {
 			wp_die( esc_html__( 'You do not have permission to import product costs.', 'cost-importer-for-woocommerce' ), 403 );
 		}
@@ -53,11 +54,17 @@ class CIWC_Plugin {
 	}
 
 	public function upload() {
-		$this->guard( 'ciwc_upload' );
-		if ( empty( $_FILES['ciwc_csv'] ) || ! isset( $_FILES['ciwc_csv']['tmp_name'] ) || UPLOAD_ERR_OK !== (int) $_FILES['ciwc_csv']['error'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$this->guard();
+		check_admin_referer( 'ciwc_upload' );
+		if ( empty( $_FILES['ciwc_csv'] ) || ! is_array( $_FILES['ciwc_csv'] ) || ! isset( $_FILES['ciwc_csv']['tmp_name'], $_FILES['ciwc_csv']['name'], $_FILES['ciwc_csv']['size'], $_FILES['ciwc_csv']['error'] ) || UPLOAD_ERR_OK !== absint( $_FILES['ciwc_csv']['error'] ) ) {
 			$this->redirect( array( 'ciwc_error' => 'upload' ) );
 		}
-		$file = $_FILES['ciwc_csv']; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$file = array(
+			'tmp_name' => sanitize_text_field( wp_unslash( $_FILES['ciwc_csv']['tmp_name'] ) ),
+			'name'     => sanitize_file_name( wp_unslash( $_FILES['ciwc_csv']['name'] ) ),
+			'size'     => absint( $_FILES['ciwc_csv']['size'] ),
+			'error'    => absint( $_FILES['ciwc_csv']['error'] ),
+		);
 		if ( $file['size'] > CIWC_CSV::MAX_BYTES || ! is_uploaded_file( $file['tmp_name'] ) ) {
 			$this->redirect( array( 'ciwc_error' => 'file' ) );
 		}
@@ -111,14 +118,15 @@ class CIWC_Plugin {
 	}
 
 	public function preview() {
-		$this->guard( 'ciwc_preview' );
+		$this->guard();
+		check_admin_referer( 'ciwc_preview' );
 		$id   = isset( $_POST['preview_id'] ) ? sanitize_text_field( wp_unslash( $_POST['preview_id'] ) ) : '';
 		$data = $this->get_preview( $id );
 		if ( ! $data ) {
 			$this->redirect( array( 'ciwc_error' => 'expired' ) );
 		}
 		$header  = $data['parsed']['header'];
-		$mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? wp_unslash( $_POST['mapping'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$mapping = isset( $_POST['mapping'] ) && is_array( $_POST['mapping'] ) ? map_deep( wp_unslash( $_POST['mapping'] ), 'sanitize_text_field' ) : array();
 		$map     = array();
 		foreach ( array( 'sku', 'cost', 'currency', 'id' ) as $field ) {
 			$map[ $field ] = isset( $mapping[ $field ] ) && '' !== $mapping[ $field ] ? absint( $mapping[ $field ] ) : null;
@@ -191,12 +199,15 @@ class CIWC_Plugin {
 					$row['reason'] = __( 'SKU matches more than one product or variation.', 'cost-importer-for-woocommerce' );
 					++$counts['ambiguous'];
 				}
-			} elseif ( $allow_id && $row['source_id'] && ( $product = wc_get_product( $row['source_id'] ) ) && in_array( $product->get_type(), array( 'simple', 'variable', 'variation' ), true ) ) {
+			} else {
+				$product = $allow_id && $row['source_id'] ? wc_get_product( $row['source_id'] ) : false;
+				if ( $product && in_array( $product->get_type(), array( 'simple', 'variable', 'variation' ), true ) ) {
 				$row['product_id'] = $product->get_id();
 				++$counts['matched'];
-			} else {
+				} else {
 				$row['reason'] = __( 'No matching product or variation SKU was found.', 'cost-importer-for-woocommerce' );
 				++$counts['unmatched'];
+				}
 			}
 			if ( ! empty( $row['reason'] ) ) {
 				$unmatched[] = array( $row['number'], $row['sku'], $row['cost'], $row['currency'], $row['reason'] );
@@ -238,10 +249,11 @@ class CIWC_Plugin {
 	}
 
 	public function confirm() {
-		$this->guard( 'ciwc_confirm' );
+		$this->guard();
+		check_admin_referer( 'ciwc_confirm' );
 		$id    = isset( $_POST['preview_id'] ) ? sanitize_text_field( wp_unslash( $_POST['preview_id'] ) ) : '';
 		$data  = $this->get_preview( $id );
-		$typed = isset( $_POST['confirmation'] ) ? trim( wp_unslash( $_POST['confirmation'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$typed = isset( $_POST['confirmation'] ) ? trim( sanitize_text_field( wp_unslash( $_POST['confirmation'] ) ) ) : '';
 		if ( ! $data || empty( $data['prepared'] ) || 'UPDATE COSTS' !== $typed ) {
 			$this->redirect(
 				array(
@@ -296,8 +308,9 @@ class CIWC_Plugin {
 	}
 
 	public function unmatched() {
-		$this->guard( 'ciwc_unmatched' );
-		$import = CIWC_Repository::get_import( isset( $_REQUEST['import_id'] ) ? absint( $_REQUEST['import_id'] ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified above.
+		$this->guard();
+		check_admin_referer( 'ciwc_unmatched' );
+		$import = CIWC_Repository::get_import( isset( $_REQUEST['import_id'] ) ? absint( $_REQUEST['import_id'] ) : 0 );
 		if ( ! $import ) {
 			wp_die( esc_html__( 'Import not found.', 'cost-importer-for-woocommerce' ), 404 );
 		}
@@ -306,8 +319,9 @@ class CIWC_Plugin {
 	}
 
 	public function rollback() {
-		$this->guard( 'ciwc_rollback' );
-		$import_id = isset( $_POST['import_id'] ) ? absint( $_POST['import_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above.
+		$this->guard();
+		check_admin_referer( 'ciwc_rollback' );
+		$import_id = isset( $_POST['import_id'] ) ? absint( $_POST['import_id'] ) : 0;
 		$import    = CIWC_Repository::get_import( $import_id );
 		if ( ! $import || ! in_array( $import['status'], array( 'completed', 'partial' ), true ) ) {
 			$this->redirect( array( 'ciwc_error' => 'rollback' ) );
@@ -453,7 +467,10 @@ class CIWC_Plugin {
 			<table class="widefat striped"><thead><tr><th><?php esc_html_e( 'Row', 'cost-importer-for-woocommerce' ); ?></th><th>SKU</th><th><?php esc_html_e( 'Product', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Cost', 'cost-importer-for-woocommerce' ); ?></th><th><?php esc_html_e( 'Status', 'cost-importer-for-woocommerce' ); ?></th></tr></thead><tbody>
 			<?php
 			foreach ( array_slice( $p['rows'], 0, 50 ) as $row ) {
-				echo '<tr><td>' . (int) $row['number'] . '</td><td>' . esc_html( $row['sku'] ) . '</td><td>' . ( ! empty( $row['product_id'] ) ? (int) $row['product_id'] : '—' ) . '</td><td>' . esc_html( $row['cost'] ) . '</td><td>' . esc_html( $row['reason'] ?: __( 'Matched', 'cost-importer-for-woocommerce' ) ) . '</td></tr>'; }
+				$product_id = ! empty( $row['product_id'] ) ? (int) $row['product_id'] : '—';
+				$status     = '' !== $row['reason'] ? $row['reason'] : __( 'Matched', 'cost-importer-for-woocommerce' );
+				echo '<tr><td>' . (int) $row['number'] . '</td><td>' . esc_html( $row['sku'] ) . '</td><td>' . esc_html( (string) $product_id ) . '</td><td>' . esc_html( $row['cost'] ) . '</td><td>' . esc_html( $status ) . '</td></tr>';
+			}
 			?>
 			</tbody></table>
 			<?php
