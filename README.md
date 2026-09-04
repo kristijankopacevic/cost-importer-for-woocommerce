@@ -34,7 +34,9 @@ No telemetry, analytics, tracking, or supplier data leaves the site. The only ex
 
 ## Development
 
-Run `php tests/run.php` for parser/export unit checks. `scripts/package.ps1` creates an allow-listed merchant ZIP in `dist/`.
+Run `composer install`, then `composer run test` for the PHPUnit parser/export suite and `composer run lint` for WPCS. The release workflow also performs a current WordPress + WooCommerce fresh install, Plugin Check against the allow-listed runtime payload, HPOS declaration check, browser import/rollback/report smoke test, and ZIP validation. `scripts/package.ps1` creates an allow-listed merchant ZIP in `dist/`.
+
+Synthetic supplier examples are in [`samples/`](samples/). The five screenshots used by the landing page come from the same browser smoke test; no product UI images are fabricated.
 
 ## License
 

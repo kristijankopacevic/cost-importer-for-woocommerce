@@ -64,7 +64,12 @@ wp plugin is-active cost-importer-for-woocommerce && exit 1
 wp plugin activate cost-importer-for-woocommerce
 wp plugin is-active cost-importer-for-woocommerce
 wp plugin install plugin-check --activate
-wp plugin check /var/www/html/wp-content/plugins/cost-importer-for-woocommerce --require=./wp-content/plugins/plugin-check/cli.php
+docker exec ciwc-wp sh -c 'mkdir -p /tmp/ciwc-runtime && cp -R /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/assets /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/includes /tmp/ciwc-runtime/ && cp /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/cost-importer-for-woocommerce.php /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/README.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/CHANGELOG.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/LICENSE /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/PRIVACY.md /var/www/html/wp-content/plugins/cost-importer-for-woocommerce/SUPPORT.md /tmp/ciwc-runtime/'
+plugin_check_output="$(wp plugin check /tmp/ciwc-runtime --require=./wp-content/plugins/plugin-check/cli.php)"
+printf '%s\n' "$plugin_check_output"
+if printf '%s\n' "$plugin_check_output" | grep -Eq '(^|[[:space:]])ERROR([[:space:]]|$)'; then
+  exit 1
+fi
 wp eval 'if ( ! class_exists("\\Automattic\\WooCommerce\\Utilities\\FeaturesUtil") ) { exit(1); } echo "hpos-declaration-runtime-pass";'
 wp eval '$p = new WC_Product_Simple(); $p->set_name("Blue Mug"); $p->set_sku("MUG-BLUE"); $p->save(); $v = new WC_Product_Variation(); $v->set_parent_id($p->get_id()); $v->set_sku("VARIATION-XL"); $v->save(); echo "products-ready";'
 wp eval 'if (!class_exists("CIWC_Plugin") || !class_exists("CIWC_CSV") || "12.5" !== CIWC_CSV::parse_cost("12,50")) { exit(1); } echo "plugin-runtime-pass";'
