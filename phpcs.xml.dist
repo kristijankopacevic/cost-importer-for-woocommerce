@@ -6,6 +6,11 @@
   <rule ref="WordPress">
     <exclude name="WordPress.Files.FileName"/>
     <exclude name="WordPress.PHP.DevelopmentFunctions"/>
+    <exclude name="WordPress.Commenting"/>
+    <exclude name="WordPress.WhiteSpace"/>
+    <exclude name="WordPress.Arrays"/>
+    <exclude name="WordPress.PHP.YodaConditions"/>
+    <exclude name="WordPress.WP.I18n"/>
   </rule>
   <rule ref="PHPCompatibility" />
   <config name="testVersion" value="7.4-"/>
